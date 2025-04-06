@@ -2,8 +2,7 @@
 const appState = {
   selectedInstrument: null,
   socket: null,
-  currentRoom: null,
-  userId: null, // Added userId state
+  // Remove currentRoom and userId, not needed here anymore
 };
 
 // DOM elements
@@ -12,12 +11,12 @@ const elements = {
   createRoomBtn: document.getElementById("createRoomBtn"),
   joinRoomBtn: document.getElementById("joinRoomBtn"),
   roomIdInput: document.getElementById("roomIdInput"),
-  errorMessage: document.getElementById("errorMessage"), // Assuming you have an element with this ID for errors
+  errorMessage: document.getElementById("errorMessage"),
 };
 
 // Instruments data
 const instruments = [
-  { id: "guitar", name: "Guitar", icon: "🎸" }, // Corrected icons
+  { id: "guitar", name: "Guitar", icon: "🎸" },
   { id: "piano", name: "Piano", icon: "🎹" },
   { id: "drums", name: "Drums", icon: "🥁" },
   { id: "vocal", name: "Vocal", icon: "🎤" },
@@ -27,7 +26,7 @@ const instruments = [
 function initApp() {
   renderInstruments();
   setupEventListeners();
-  connectSocket();
+  connectSocket(); // Connect socket once on load
 }
 
 // Render instrument selection
@@ -56,7 +55,7 @@ function setupEventListeners() {
       appState.selectedInstrument = card.dataset.instrument;
       elements.createRoomBtn.disabled = false;
       elements.joinRoomBtn.disabled = !elements.roomIdInput.value;
-      clearError(); // Clear errors on new selection
+      clearError();
     });
   });
 
@@ -65,80 +64,86 @@ function setupEventListeners() {
     elements.joinRoomBtn.disabled = !(
       e.target.value && appState.selectedInstrument
     );
-    clearError(); // Clear errors on input change
+    clearError();
   });
 
   // Create room button
-  elements.createRoomBtn.addEventListener("click", createRoom);
+  elements.createRoomBtn.addEventListener("click", handleCreateRoomRequest);
 
   // Join room button
-  elements.joinRoomBtn.addEventListener("click", joinRoom);
+  elements.joinRoomBtn.addEventListener("click", handleJoinRoomRequest);
 }
 
-// Connect to Socket.io server
+// Connect to Socket.io server (only once)
 function connectSocket() {
-  // Ensure connection is only established once
   if (!appState.socket) {
-    appState.socket = io("http://localhost:3001"); // Make sure this URL matches your server
+    // *** MODIFIED LINE HERE ***
+    // Replace "YOUR_SERVER_LOCAL_IP" with the actual IP of the machine running the server
+    const SERVER_URL = "http://192.168.1.45:3001";
+    // Example: const SERVER_URL = "http://192.168.1.100:3001";
 
-    // --- Centralized Error Handling ---
+    console.log(`Attempting to connect to server at ${SERVER_URL}`); // Log the URL being used
+    appState.socket = io(SERVER_URL); // Use the server's local IP
+
+    // Centralized listener for errors from server requests on this page
     appState.socket.on("error", (message) => {
       console.error("Server error:", message);
-      showError(message); // Display error to the user
+      showError(message);
     });
 
-    // --- Listeners for room creation/join confirmation ---
-    // Moved from createRoom/joinRoom functions to ensure they are set up only once
-
-    appState.socket.on("room-created", ({ room, userId }) => {
-      // Destructure room and userId
-      console.log("Room created:", room, "User ID:", userId);
-      appState.currentRoom = room;
-      appState.userId = userId;
-      // Store userId for the next page (room.html)
-      sessionStorage.setItem("userId", userId);
-      window.location.href = `room.html?roomId=${room.id}&instrument=${appState.selectedInstrument}`;
+    // Listeners for Server Responses
+    appState.socket.on("room-id-created", ({ roomId }) => {
+      console.log("Received room-id-created:", roomId);
+      if (roomId) {
+        window.location.href = `room.html?action=create&roomId=${roomId}&instrument=${appState.selectedInstrument}`;
+      } else {
+        showError("Failed to get Room ID from server.");
+      }
     });
-
-    appState.socket.on("room-joined", ({ room, userId }) => {
-      // Destructure room and userId
-      console.log("Room joined:", room, "User ID:", userId);
-      appState.currentRoom = room;
-      appState.userId = userId;
-      // Store userId for the next page (room.html)
-      sessionStorage.setItem("userId", userId);
-      window.location.href = `room.html?roomId=${room.id}&instrument=${appState.selectedInstrument}`;
+    appState.socket.on("join-validated", ({ success, roomId, message }) => {
+      console.log("Received join-validated:", { success, roomId, message });
+      if (success) {
+        window.location.href = `room.html?action=join&roomId=${roomId}&instrument=${appState.selectedInstrument}`;
+      } else {
+        showError(message || "Failed to validate room.");
+      }
     });
 
     // Handle connection errors
     appState.socket.on("connect_error", (err) => {
-      console.error("Connection failed:", err.message);
-      showError("Cannot connect to the server. Please ensure it's running.");
+      console.error(`Connection failed to ${SERVER_URL}:`, err.message);
+      showError(
+        `Cannot connect to the server at ${SERVER_URL}. Ensure it's running and check the IP address.`
+      );
+    });
+
+    appState.socket.on("connect", () => {
+      console.log(`Successfully connected to server at ${SERVER_URL}`);
     });
   }
 }
 
-// Create a new room
-function createRoom() {
+// --- Request Functions ---
+
+// Request the server to generate a room ID
+function handleCreateRoomRequest() {
   if (!appState.selectedInstrument) {
     showError("Please select an instrument first.");
     return;
   }
   if (!appState.socket || !appState.socket.connected) {
-    showError("Not connected to server. Please wait or refresh.");
+    showError("Not connected to server.");
     return;
   }
   clearError();
-  console.log(
-    "Emitting create-room with instrument:",
-    appState.selectedInstrument
-  );
-  appState.socket.emit("create-room", appState.selectedInstrument);
+  console.log("Emitting create-room-request");
+  // Send only the instrument, server will generate ID
+  appState.socket.emit("create-room-request", appState.selectedInstrument);
 }
 
-// Join an existing room
-function joinRoom() {
-  const roomId = elements.roomIdInput.value.trim().toUpperCase(); // Match server generation
+// Request the server to validate joining an existing room
+function handleJoinRoomRequest() {
+  const roomId = elements.roomIdInput.value.trim().toUpperCase();
   if (!roomId) {
     showError("Please enter a Room ID.");
     return;
@@ -148,15 +153,12 @@ function joinRoom() {
     return;
   }
   if (!appState.socket || !appState.socket.connected) {
-    showError("Not connected to server. Please wait or refresh.");
+    showError("Not connected to server.");
     return;
   }
   clearError();
-  console.log("Emitting join-room with:", {
-    roomId,
-    instrument: appState.selectedInstrument,
-  });
-  appState.socket.emit("join-room", {
+  console.log("Emitting validate-join-request for room:", roomId);
+  appState.socket.emit("validate-join-request", {
     roomId,
     instrument: appState.selectedInstrument,
   });
@@ -166,16 +168,16 @@ function joinRoom() {
 function showError(message) {
   if (elements.errorMessage) {
     elements.errorMessage.textContent = message;
-    elements.errorMessage.style.display = "block"; // Or manage visibility via CSS classes
+    elements.errorMessage.style.display = "block";
   } else {
-    alert(message); // Fallback if error element doesn't exist
+    alert(message);
   }
 }
 
 function clearError() {
   if (elements.errorMessage) {
     elements.errorMessage.textContent = "";
-    elements.errorMessage.style.display = "none"; // Or manage visibility via CSS classes
+    elements.errorMessage.style.display = "none";
   }
 }
 
