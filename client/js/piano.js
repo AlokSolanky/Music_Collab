@@ -129,6 +129,7 @@ function playPianoNote(note, keyType) {
   // Send to other users
   if (roomState.socket) {
     roomState.socket.emit("audio-event", {
+      instrument: "piano",
       type: "piano-note",
       note,
       keyType,
@@ -138,8 +139,14 @@ function playPianoNote(note, keyType) {
 }
 
 // Handle incoming piano events from other users
-window.handlePianoEvent = function (event) {
-  if (event.type === "piano-note") {
+window.playRemotePianoSound = function (event) {
+  console.log("Remote piano event:", event); // Debugging
+  if (event.type === "piano-note" && event.note) {
+    // *** ADD THIS LINE TO PLAY SOUND ***
+    // Use playNote or playChord as appropriate from audioEngine
+    audioEngine.playNote(event.note, "piano"); // Or playChord([event.note], "piano")
+
+    // Keep existing visual feedback
     const keyElement = document.querySelector(
       `[data-note="${event.note.slice(0, -1)}"]`
     );
