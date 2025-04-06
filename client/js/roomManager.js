@@ -34,9 +34,6 @@ function initRoom() {
 
   roomState.isCreating = action === "create"; // Set flag if creating
 
-  // Remove userId handling from sessionStorage - server assigns it now
-  // roomState.userId = sessionStorage.getItem("userId"); // NO LONGER NEEDED
-
   document.title = `${
     roomState.instrument.charAt(0).toUpperCase() + roomState.instrument.slice(1)
   } - Room ${roomState.roomId}`;
@@ -53,7 +50,7 @@ function initRoom() {
   setupAudio(); // Setup audio enable button/logic
 }
 
-// Load the appropriate instrument interface (CSS and JS) - unchanged
+// Load the appropriate instrument interface (CSS and JS)
 function loadInstrumentInterface(instrument) {
   if (!roomElements.instrumentContainer) {
     console.error("Instrument container not found!");
@@ -89,7 +86,16 @@ function loadInstrumentInterface(instrument) {
 function connectAndJoinRoomSocket(roomId, instrument, isCreating) {
   if (roomState.socket) return; // Prevent multiple connections
 
-  roomState.socket = io("http://localhost:3001");
+  // *** MODIFIED LINE HERE ***
+  // Replace "YOUR_SERVER_LOCAL_IP" with the actual IP of the machine running the server.
+  // Make sure it includes http:// and the correct port (:3001).
+  const SERVER_URL = "http://192.168.1.45:3001";
+  // Example: const SERVER_URL = "http://192.168.1.100:3001";
+
+  console.log(
+    `Attempting to connect to server at ${SERVER_URL} for room ${roomId}`
+  ); // Log the URL
+  roomState.socket = io(SERVER_URL); // Use the server's local IP
 
   roomState.socket.on("connect", () => {
     console.log("Socket connected:", roomState.socket.id);
@@ -121,7 +127,7 @@ function connectAndJoinRoomSocket(roomId, instrument, isCreating) {
     }
   });
 
-  // Listeners for real-time updates (user joined/left) - unchanged needed
+  // Listeners for real-time updates (user joined/left)
   roomState.socket.on("user-joined", (newUser) => {
     console.log("User joined:", newUser);
     if (newUser && !roomState.users.some((u) => u.id === newUser.id)) {
@@ -143,15 +149,14 @@ function connectAndJoinRoomSocket(roomId, instrument, isCreating) {
     console.log("New host assigned:", newHostId);
     if (roomState.currentRoom) roomState.currentRoom.host = newHostId;
     updateUsersList(); // Re-render list to show new host potentially
-    // Optionally display a message
   });
 
-  // Listener for audio events from others - unchanged needed
+  // Listener for audio events from others
   roomState.socket.on("audio-event", (event) => {
     handleIncomingAudioEvent(event);
   });
 
-  // Centralized error handling - unchanged needed
+  // Centralized error handling
   roomState.socket.on("error", (message) => {
     console.error("Server error on room page:", message);
     alert(`Error: ${message}`);
@@ -163,8 +168,10 @@ function connectAndJoinRoomSocket(roomId, instrument, isCreating) {
     }
   });
   roomState.socket.on("connect_error", (err) => {
-    console.error("Room connection failed:", err.message);
-    alert("Lost connection to the server. Please try rejoining.");
+    console.error(`Room connection failed to ${SERVER_URL}:`, err.message); // Include URL in error
+    alert(
+      `Lost connection to the server at ${SERVER_URL}. Please try rejoining.`
+    );
     window.location.href = "index.html";
   });
   roomState.socket.on("disconnect", (reason) => {
@@ -174,7 +181,7 @@ function connectAndJoinRoomSocket(roomId, instrument, isCreating) {
   });
 }
 
-// --- UI Update Functions --- (Mostly unchanged, ensure they use roomElements)
+// --- UI Update Functions ---
 
 function updatePlayerCount() {
   const count = roomState.users ? roomState.users.length : 0;
@@ -212,15 +219,28 @@ function updateRoomUI(room) {
   updateUsersList();
 }
 
-// Handle incoming audio events (no changes needed)
+// Handle incoming audio events
 function handleIncomingAudioEvent(event) {
-  const instrument = event.instrument;
+  // Assuming the event includes instrument info, e.g., event.instrument
+  const instrument = event.instrument; // Adjust if event structure is different
+  if (!instrument) {
+    console.warn("Audio event received without instrument type:", event);
+    // Optionally handle generic events or ignore
+    if (typeof window.playRemoteSound === "function") {
+      window.playRemoteSound(event); // Try a generic handler
+    }
+    return;
+  }
+
   const handlerFunctionName = `playRemote${
     instrument.charAt(0).toUpperCase() + instrument.slice(1)
-  }Sound`;
+  }Sound`; // e.g., playRemoteGuitarSound
+
   if (typeof window[handlerFunctionName] === "function") {
     try {
-      window[handlerFunctionName](event);
+      // Pass necessary details from the event to the handler
+      // Example: window[handlerFunctionName](event.details);
+      window[handlerFunctionName](event); // Adjust based on what handlers expect
     } catch (error) {
       console.error(
         `Error in remote play handler ${handlerFunctionName}:`,
@@ -228,19 +248,22 @@ function handleIncomingAudioEvent(event) {
       );
     }
   } else {
+    // Fallback if specific handler is missing
     if (typeof window.playRemoteSound === "function") {
       window.playRemoteSound(event);
+    } else {
+      // console.warn(`Remote play handler function ${handlerFunctionName} not found.`);
     }
   }
 }
 
-// Get instrument icon (no changes needed)
+// Get instrument icon
 function getInstrumentIcon(instrument) {
   const icons = { guitar: "🎸", piano: "🎹", drums: "🥁", vocal: "🎤" };
   return icons[instrument] || "🎵";
 }
 
-// Setup audio context (no changes needed, assuming button exists)
+// Setup audio context
 function setupAudio() {
   if (roomElements.startAudioButton) {
     roomElements.startAudioButton.addEventListener(
@@ -250,18 +273,50 @@ function setupAudio() {
           await Tone.start();
           console.log("Audio Context is running");
           roomElements.startAudioButton.style.display = "none";
+          // Initialize the main audio engine *after* context is running
           if (typeof window.initializeAudioEngine === "function") {
+            // Check if audioEngine.js exposes this
             window.initializeAudioEngine();
+          } else if (
+            typeof audioEngine !== "undefined" &&
+            typeof audioEngine.init === "function"
+          ) {
+            // Or maybe directly call if audioEngine is global and has init
+            audioEngine.init();
           }
         } catch (e) {
           console.error("Failed to start Audio Context:", e);
-          alert("Could not enable audio.");
+          alert(
+            "Could not enable audio. Please check browser settings/permissions."
+          );
         }
       },
       { once: true }
     );
   } else {
-    /* Fallback... */
+    // Fallback: Less reliable, might not work on all browsers/interactions
+    document.body.addEventListener(
+      "click",
+      async () => {
+        if (typeof Tone !== "undefined" && Tone.context.state !== "running") {
+          try {
+            await Tone.start();
+            console.log("Audio Context started via body click.");
+            if (typeof window.initializeAudioEngine === "function") {
+              window.initializeAudioEngine();
+            } else if (
+              typeof audioEngine !== "undefined" &&
+              typeof audioEngine.init === "function"
+            ) {
+              audioEngine.init();
+            }
+          } catch (e) {
+            console.error("Failed to start Audio Context via body click:", e);
+          }
+        }
+      },
+      { once: true }
+    );
   }
 }
 

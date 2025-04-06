@@ -77,7 +77,13 @@ function setupEventListeners() {
 // Connect to Socket.io server (only once)
 function connectSocket() {
   if (!appState.socket) {
-    appState.socket = io("http://localhost:3001");
+    // *** MODIFIED LINE HERE ***
+    // Replace "YOUR_SERVER_LOCAL_IP" with the actual IP of the machine running the server
+    const SERVER_URL = "http://192.168.1.45:3001";
+    // Example: const SERVER_URL = "http://192.168.1.100:3001";
+
+    console.log(`Attempting to connect to server at ${SERVER_URL}`); // Log the URL being used
+    appState.socket = io(SERVER_URL); // Use the server's local IP
 
     // Centralized listener for errors from server requests on this page
     appState.socket.on("error", (message) => {
@@ -85,34 +91,34 @@ function connectSocket() {
       showError(message);
     });
 
-    // --- Listeners for Server Responses to Requests ---
-
-    // Response after requesting to create a room
+    // Listeners for Server Responses
     appState.socket.on("room-id-created", ({ roomId }) => {
       console.log("Received room-id-created:", roomId);
       if (roomId) {
-        // Redirect, passing intent ('create') and info
         window.location.href = `room.html?action=create&roomId=${roomId}&instrument=${appState.selectedInstrument}`;
       } else {
         showError("Failed to get Room ID from server.");
       }
     });
-
-    // Response after requesting to join (validation)
     appState.socket.on("join-validated", ({ success, roomId, message }) => {
       console.log("Received join-validated:", { success, roomId, message });
       if (success) {
-        // Redirect, passing intent ('join') and info
         window.location.href = `room.html?action=join&roomId=${roomId}&instrument=${appState.selectedInstrument}`;
       } else {
-        showError(message || "Failed to validate room."); // Show specific error from server
+        showError(message || "Failed to validate room.");
       }
     });
 
     // Handle connection errors
     appState.socket.on("connect_error", (err) => {
-      console.error("Connection failed:", err.message);
-      showError("Cannot connect to the server. Please ensure it's running.");
+      console.error(`Connection failed to ${SERVER_URL}:`, err.message);
+      showError(
+        `Cannot connect to the server at ${SERVER_URL}. Ensure it's running and check the IP address.`
+      );
+    });
+
+    appState.socket.on("connect", () => {
+      console.log(`Successfully connected to server at ${SERVER_URL}`);
     });
   }
 }

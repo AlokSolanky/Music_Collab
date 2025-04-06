@@ -177,6 +177,15 @@ function generateRoomId() {
 }
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// *** MODIFIED LINE HERE ***
+// Listen on 0.0.0.0 to accept connections from the network, not just localhost
+server.listen(PORT, "0.0.0.0", () => {
+  // You can optionally log the network address too, but finding it automatically
+  // can be complex, so usually, you just find it manually as described above.
+  console.log(
+    `Server running on port ${PORT} and accessible on the local network.`
+  );
+  console.log(
+    `Other devices on the network should connect to this machine's IP address.`
+  );
 });
