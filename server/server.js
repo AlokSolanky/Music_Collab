@@ -74,26 +74,40 @@ io.on("connection", (socket) => {
   socket.on("register-socket", ({ roomId, userId }) => {
     const room = rooms.get(roomId);
     if (room) {
-      // Verify the user is actually supposed to be in this room
-      // (optional but good practice, compares stored userId with the one trying to register)
-      const userExists = room.users.some((u) => u.id === userId);
-      if (userExists && socket.id === userId) {
-        // Ensure the socket ID matches the claimed userId
-        socket.join(roomId); // Join the Socket.IO room
-        console.log(`Socket ${socket.id} registered for room ${roomId}`);
+      // Verify the user (identified by userId from sessionStorage) exists in the room
+      const userIndex = room.users.findIndex((u) => u.id === userId);
+
+      // *** FIX APPLIED HERE ***
+      // We check if the user ID exists in the room's list.
+      // We DON'T compare the current socket.id with the userId from sessionStorage,
+      // because they *will* be different after the page redirect.
+      if (userIndex !== -1) {
+        socket.join(roomId); // Join the Socket.IO room with the *current* socket
+
+        // Optional: Update the user's stored ID to the current socket ID if needed elsewhere.
+        // This might be useful if you ever need to send a message directly to this specific socket.
+        // room.users[userIndex].id = socket.id; // Be cautious if you rely on the original ID elsewhere
+        // console.log(`User ${userId} re-registered with new socket ID ${socket.id} in room ${roomId}`);
+        // If you uncomment the line above, make sure disconnect logic uses the *current* ID.
+
+        console.log(
+          `Socket ${socket.id} (representing user ${userId}) registered for room ${roomId}`
+        );
+
         // Send the current state of the room back to this newly registered socket
         socket.emit("room-state", room);
       } else {
         console.log(
-          `Registration failed: User ${userId} / Socket ${socket.id} mismatch or not found in room ${roomId}`
+          `Registration failed: User ${userId} not found in room ${roomId}`
         );
-        socket.emit("error", "Registration failed: User/Socket mismatch.");
+        socket.emit("error", "Registration failed: User not found in room.");
       }
     } else {
       console.log(
         `Registration failed: Room ${roomId} not found for socket ${socket.id}`
       );
-      socket.emit("error", "Room not found during registration");
+      // Send the specific error the user reported seeing
+      socket.emit("error", "Error: Room not found during registration");
     }
   });
 
