@@ -124,7 +124,13 @@ function playDrumSound(sound) {
 
 // Handle incoming drum events from other users
 window.handleDrumEvent = function (event) {
-  if (event.type === "drum-hit") {
+  // Event data should contain sound ID: event.sound
+  // Play the sound received from another user
+  if (event.type === "drum-hit" && event.sound) {
+    console.log("Handling remote drum hit:", event.sound);
+    audioEngine.playDrumSound(event.sound); // Play the received drum sound
+
+    // Keep visual feedback
     const padElement = document.querySelector(`[data-sound="${event.sound}"]`);
     if (padElement) {
       padElement.classList.add("active");
