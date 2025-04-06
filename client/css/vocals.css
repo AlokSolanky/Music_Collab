@@ -1,0 +1,89 @@
+.vocal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.mic-visualizer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #0f3460;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 2rem;
+  position: relative;
+  transition: transform 0.1s;
+}
+
+.mic-visualizer.active {
+  transform: scale(1.02);
+}
+
+.mic-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.visualizer-bars {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  height: 80px;
+  width: 100%;
+}
+
+.visualizer-bar {
+  width: 6px;
+  height: 0%;
+  background-color: #4cc9f0;
+  border-radius: 3px;
+  transition: height 0.1s;
+}
+
+.vocal-controls {
+  background-color: #16213e;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.mic-button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: #f72585;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mic-button:hover {
+  background-color: #e5177e;
+}
+
+.effects-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.effect {
+  display: flex;
+  flex-direction: column;
+}
+
+.effect label {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #e6e6e6;
+}
+
+.effect input[type="range"] {
+  width: 100%;
+}

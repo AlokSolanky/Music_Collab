@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Room</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <!-- Instrument-specific CSS will be loaded dynamically -->
+  </head>
+  <body>
+    <div class="room-container">
+      <header class="room-header">
+        <div class="room-info">
+          <h2 id="roomIdDisplay">Room: Loading...</h2>
+          <p id="playerCount">Players: 0/4</p>
+        </div>
+      </header>
+
+      <main class="room-main" id="instrumentContainer">
+        <!-- Instrument interface will be loaded here -->
+        <div class="loading-instrument">Loading instrument interface...</div>
+      </main>
+
+      <footer class="room-footer">
+        <div class="users-list" id="usersList">
+          <!-- List of users will be populated here -->
+        </div>
+      </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="js/roomManager.js"></script>
+    <script src="js/audioEngine.js"></script>
+    <!-- Instrument-specific JS will be loaded dynamically -->
+  </body>
+</html>

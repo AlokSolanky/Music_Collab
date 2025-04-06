@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Collaboration App</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="title">Music Collaboration App</h1>
+
+      <section class="section">
+        <h2>Select Your Instrument</h2>
+        <div class="instruments-grid" id="instrumentsGrid">
+          <!-- Filled by JavaScript -->
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Create a Room</h2>
+        <button id="createRoomBtn" class="btn" disabled>
+          Create New Jam Session
+        </button>
+      </section>
+
+      <section class="section">
+        <h2>Join a Room</h2>
+        <div class="join-form">
+          <input type="text" id="roomIdInput" placeholder="Enter Room ID" />
+          <button id="joinRoomBtn" class="btn" disabled>Join Room</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

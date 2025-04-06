@@ -1,0 +1,150 @@
+/* Base styles */
+body {
+  font-family: "Arial", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a2e;
+  color: #e6e6e6;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.title {
+  text-align: center;
+  color: #4cc9f0;
+  margin-bottom: 2rem;
+}
+
+.section {
+  background-color: #16213e;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Instrument selection */
+.instruments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.instrument-card {
+  background-color: #0f3460;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.instrument-card:hover {
+  transform: translateY(-5px);
+  background-color: #1a3a6e;
+}
+
+.instrument-card.selected {
+  background-color: #4cc9f0;
+  color: #1a1a2e;
+}
+
+.instrument-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.instrument-name {
+  font-weight: bold;
+}
+
+/* Buttons and forms */
+.btn {
+  background-color: #4cc9f0;
+  color: #1a1a2e;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.btn:hover {
+  background-color: #3aa8d8;
+}
+
+.btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.join-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #0f3460;
+  color: white;
+}
+
+/* Room styles */
+.room-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.room-header {
+  padding: 1rem;
+  background-color: #16213e;
+}
+
+.room-main {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.room-footer {
+  padding: 1rem;
+  background-color: #16213e;
+}
+
+.users-list {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.user-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.user-icon {
+  font-size: 1.5rem;
+}
+
+.loading-instrument {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: 2rem;
+}

@@ -1,0 +1,56 @@
+.guitar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.guitar-image {
+  width: 300px;
+  margin-bottom: 2rem;
+  transition: transform 0.1s;
+}
+
+.guitar-image.strumming {
+  transform: scale(1.05);
+}
+
+.chords-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+.chord-button {
+  background-color: #0f3460;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.chord-button:hover {
+  background-color: #1a3a6e;
+}
+
+.chord-button.active {
+  background-color: #4cc9f0;
+  color: #1a1a2e;
+}
+
+.chord-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.shortcut {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

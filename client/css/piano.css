@@ -1,0 +1,108 @@
+.piano-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 1rem;
+}
+
+.piano-keyboard {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.white-keys {
+  display: flex;
+  height: 100%;
+}
+
+.white-key {
+  flex: 1;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 0 0 5px 5px;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 0.5rem;
+}
+
+.white-key.active {
+  background-color: #f0f0f0;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.black-keys {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60%;
+  display: flex;
+  padding-left: 3.5%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.black-key {
+  width: 7%;
+  height: 100%;
+  background-color: #333;
+  margin-right: 5.5%;
+  border-radius: 0 0 3px 3px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.black-key.active {
+  background-color: #555;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+.black-key:nth-child(3) {
+  margin-right: 9.5%;
+}
+
+.key-label {
+  user-select: none;
+  color: #333;
+  font-weight: bold;
+}
+
+.piano-controls {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  justify-content: center;
+}
+
+.octave-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #0f3460;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+}
+
+.octave-control button {
+  background-color: #4cc9f0;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.octave-control span {
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
