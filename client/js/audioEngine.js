@@ -42,14 +42,37 @@ const audioEngine = {
   },
 
   initDrums() {
-    this.samples.drums = {
-      kick: new Tone.Player("assets/sounds/drums/kick.wav").connect(
-        this.masterVolume
-      ),
+    // Define paths to your drum samples - MAKE SURE FILENAMES/EXTENSIONS MATCH YOUR FILES
+    const drumSampleFiles = {
+      kick: "kick.wav",
+      snare: "snare.wav",
+      hihat: "hihat.wav", // Or maybe separate open/closed hihats
+      clap: "clap.wav",
+      tom1: "tom.wav",
+      tom2: "tink.wav",
+      ride: "ride.wav",
+      crash: "boom.wav",
+      percussion: "openhat.wav", // Example name
     };
 
-    // Preload drum samples
-    this.samples.drums.kick.load();
+    this.samples.drums = {}; // Initialize as empty object
+
+    // Create and load a Tone.Player for each drum sound
+    for (const soundId in drumSampleFiles) {
+      const filePath = `assets/sounds/drums/${drumSampleFiles[soundId]}`;
+      this.samples.drums[soundId] = new Tone.Player(filePath).connect(
+        this.masterVolume
+      );
+      // Optional: Add error handling for loading
+      this.samples.drums[soundId].load().catch((err) => {
+        console.error(`Failed to load drum sample: ${filePath}`, err);
+        alert(
+          `Error loading drum sound: ${soundId}. Check asset path and filename.`
+        );
+      });
+      console.log(`Loading drum sample: ${filePath}`);
+    }
+    console.log("Drum samples loading initiated.");
   },
 
   initVocals() {

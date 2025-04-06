@@ -220,40 +220,48 @@ function updateRoomUI(room) {
 }
 
 // Handle incoming audio events
+// Replace the existing handleIncomingAudioEvent function in roomManager.js
 function handleIncomingAudioEvent(event) {
-  // Assuming the event includes instrument info, e.g., event.instrument
-  const instrument = event.instrument; // Adjust if event structure is different
-  if (!instrument) {
-    console.warn("Audio event received without instrument type:", event);
-    // Optionally handle generic events or ignore
-    if (typeof window.playRemoteSound === "function") {
-      window.playRemoteSound(event); // Try a generic handler
-    }
+  // Make sure event and type exist
+  if (!event || !event.type) {
+    console.warn("Received incomplete audio event:", event);
     return;
   }
 
-  const handlerFunctionName = `playRemote${
-    instrument.charAt(0).toUpperCase() + instrument.slice(1)
-  }Sound`; // e.g., playRemoteGuitarSound
+  console.log("Handling incoming event:", event); // General log
 
-  if (typeof window[handlerFunctionName] === "function") {
+  // Determine the correct handler based on event type
+  let handlerFunction = null;
+  if (event.type === "chord") {
+    // From guitar.js
+    handlerFunction = window.handleChordEvent;
+  } else if (event.type === "piano-note") {
+    // From piano.js
+    handlerFunction = window.handlePianoEvent;
+  } else if (event.type === "drum-hit") {
+    // From drums.js
+    handlerFunction = window.handleDrumEvent;
+  } else if (event.type === "vocal-data") {
+    // From vocal.js
+    handlerFunction = window.handleVocalEvent;
+  }
+  // Add more types if needed
+
+  if (typeof handlerFunction === "function") {
     try {
-      // Pass necessary details from the event to the handler
-      // Example: window[handlerFunctionName](event.details);
-      window[handlerFunctionName](event); // Adjust based on what handlers expect
+      handlerFunction(event); // Call the specific handler
     } catch (error) {
       console.error(
-        `Error in remote play handler ${handlerFunctionName}:`,
+        `Error executing event handler for type ${event.type}:`,
         error
       );
     }
   } else {
-    // Fallback if specific handler is missing
-    if (typeof window.playRemoteSound === "function") {
-      window.playRemoteSound(event);
-    } else {
-      // console.warn(`Remote play handler function ${handlerFunctionName} not found.`);
-    }
+    console.warn(`No specific handler found for event type: ${event.type}`);
+    // Optional: Implement a generic fallback visual/audio cue
+    // if (typeof window.playRemoteSound === "function") {
+    //     window.playRemoteSound(event);
+    // }
   }
 }
 
