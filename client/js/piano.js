@@ -129,6 +129,7 @@ function playPianoNote(note, keyType) {
   // Send to other users
   if (roomState.socket) {
     roomState.socket.emit("audio-event", {
+      instrument: "piano",
       type: "piano-note",
       note,
       keyType,
@@ -139,15 +140,10 @@ function playPianoNote(note, keyType) {
 
 // Handle incoming piano events from other users
 window.handlePianoEvent = function (event) {
-  // Event data should contain note: event.note
-  // Play the sound received from another user
-  if (event.type === "piano-note" && event.note) {
-    console.log("Handling remote piano note:", event.note);
-    audioEngine.playChord([event.note], "piano"); // Play the received note
-
-    // Keep visual feedback
-    const noteBase = event.note.slice(0, -1); // e.g., "C#" from "C#4"
-    const keyElement = document.querySelector(`[data-note="${noteBase}"]`);
+  if (event.type === "piano-note") {
+    const keyElement = document.querySelector(
+      `[data-note="${event.note.slice(0, -1)}"]`
+    );
     if (keyElement) {
       keyElement.classList.add("active");
       // Adjust timeout for sound duration? Maybe not needed for piano sampler

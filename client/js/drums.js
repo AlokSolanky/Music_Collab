@@ -115,6 +115,7 @@ function playDrumSound(sound) {
   // Send to other users
   if (roomState.socket) {
     roomState.socket.emit("audio-event", {
+      instrument: "drums",
       type: "drum-hit",
       sound,
       timestamp: Date.now(),
@@ -124,13 +125,7 @@ function playDrumSound(sound) {
 
 // Handle incoming drum events from other users
 window.handleDrumEvent = function (event) {
-  // Event data should contain sound ID: event.sound
-  // Play the sound received from another user
-  if (event.type === "drum-hit" && event.sound) {
-    console.log("Handling remote drum hit:", event.sound);
-    audioEngine.playDrumSound(event.sound); // Play the received drum sound
-
-    // Keep visual feedback
+  if (event.type === "drum-hit") {
     const padElement = document.querySelector(`[data-sound="${event.sound}"]`);
     if (padElement) {
       padElement.classList.add("active");

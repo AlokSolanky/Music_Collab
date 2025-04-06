@@ -145,7 +145,7 @@ function initVocalInterface() {
 }
 
 // Handle incoming vocal events from other users
-window.handleVocalEvent = function (event) {
+window.playRemoteVocalSound = function (event) {
   if (event.type === "vocal-data") {
     // In a real app, we'd process the incoming audio data
     const visualizer = document.getElementById("micVisualizer");

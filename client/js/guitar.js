@@ -70,6 +70,7 @@ function playGuitarChord(chord) {
   // Send to other users
   if (roomState.socket) {
     roomState.socket.emit("audio-event", {
+      instrument: "guitar",
       type: "chord",
       chord: chord.name,
       notes: chord.notes,
@@ -80,13 +81,8 @@ function playGuitarChord(chord) {
 
 // Handle incoming guitar events from other users
 window.handleChordEvent = function (event) {
-  // Event data should contain notes: event.notes
-  // Play the sound received from another user
-  if (event.type === "chord" && event.notes) {
-    console.log("Handling remote chord:", event.chord, event.notes);
-    audioEngine.playChord(event.notes, "guitar"); // Play the received chord
-
-    // Keep visual feedback
+  if (event.type === "chord") {
+    // Visual feedback only (since audio is handled by sender)
     const guitarImage = document.getElementById("guitarImage");
     if (guitarImage) {
       guitarImage.classList.add("strumming");
