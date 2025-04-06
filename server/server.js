@@ -7,164 +7,161 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Allow all origins for simplicity, adjust for production
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-// In-memory storage for rooms. Consider a database for persistence.
 const rooms = new Map();
 
-// Serve static files (assuming your client files are in a 'public' directory sibling to server.js)
-// If your client files (index.html, etc.) are in the 'client' folder, change 'public' to '../client'
 app.use(express.static(path.join(__dirname, "../client"))); // ADJUST IF NEEDED
 
 io.on("connection", (socket) => {
   console.log(`New client connected: ${socket.id}`);
 
-  // Handle room creation
-  socket.on("create-room", (instrument) => {
+  // --- MODIFIED: Request to create, only returns ID ---
+  socket.on("create-room-request", (instrument) => {
+    console.log(`[create-room-request] Received from ${socket.id}`);
     const roomId = generateRoomId();
-    const userId = socket.id; // Use socket ID as unique user ID for this room session
-    const user = { id: userId, instrument: instrument };
-
-    rooms.set(roomId, {
-      id: roomId,
-      users: [user], // List of users in the room
-      host: userId, // ID of the user who created the room
-    });
-
-    socket.join(roomId); // Make the socket join the Socket.IO room
-    // Send back the room details and the user's ID
-    socket.emit("room-created", { room: rooms.get(roomId), userId: userId });
-    console.log(`Room ${roomId} created by user ${userId}`);
+    // We don't add the room to the main Map or join the socket *yet*.
+    // The client will join properly using 'join-room-final' after redirect.
+    console.log(
+      `[create-room-request] Generated room ID ${roomId}, sending back.`
+    );
+    socket.emit("room-id-created", { roomId }); // Only send the ID back
   });
 
-  // Handle joining an existing room
-  socket.on("join-room", ({ roomId, instrument }) => {
+  // --- MODIFIED: Request to validate join ---
+  socket.on("validate-join-request", ({ roomId, instrument }) => {
+    console.log(
+      `[validate-join-request] Received for ${roomId} from ${socket.id}`
+    );
     const room = rooms.get(roomId);
+    let response = { success: false, roomId: roomId, message: "" };
 
-    // Check if room exists
     if (!room) {
-      socket.emit("error", "Room not found");
-      console.log(`Join attempt failed: Room ${roomId} not found.`);
-      return;
-    }
-
-    // Check if room is full
-    if (room.users.length >= 4) {
-      socket.emit("error", "Room is full");
-      console.log(`Join attempt failed: Room ${roomId} is full.`);
-      return;
-    }
-
-    const userId = socket.id; // Use socket ID as unique user ID
-    const user = { id: userId, instrument: instrument };
-    room.users.push(user); // Add user to the room's user list
-
-    socket.join(roomId); // Make the socket join the Socket.IO room
-    // Send confirmation and room details back to the joining user
-    socket.emit("room-joined", { room: room, userId: userId });
-    // Notify others in the room that a new user joined
-    socket.to(roomId).emit("user-joined", user);
-    console.log(`User ${userId} joined room: ${roomId}`);
-  });
-
-  // Handle socket registration after client navigates to room.html
-  socket.on("register-socket", ({ roomId, userId }) => {
-    const room = rooms.get(roomId);
-    if (room) {
-      // Verify the user (identified by userId from sessionStorage) exists in the room
-      const userIndex = room.users.findIndex((u) => u.id === userId);
-
-      // *** FIX APPLIED HERE ***
-      // We check if the user ID exists in the room's list.
-      // We DON'T compare the current socket.id with the userId from sessionStorage,
-      // because they *will* be different after the page redirect.
-      if (userIndex !== -1) {
-        socket.join(roomId); // Join the Socket.IO room with the *current* socket
-
-        // Optional: Update the user's stored ID to the current socket ID if needed elsewhere.
-        // This might be useful if you ever need to send a message directly to this specific socket.
-        // room.users[userIndex].id = socket.id; // Be cautious if you rely on the original ID elsewhere
-        // console.log(`User ${userId} re-registered with new socket ID ${socket.id} in room ${roomId}`);
-        // If you uncomment the line above, make sure disconnect logic uses the *current* ID.
-
-        console.log(
-          `Socket ${socket.id} (representing user ${userId}) registered for room ${roomId}`
-        );
-
-        // Send the current state of the room back to this newly registered socket
-        socket.emit("room-state", room);
-      } else {
-        console.log(
-          `Registration failed: User ${userId} not found in room ${roomId}`
-        );
-        socket.emit("error", "Registration failed: User not found in room.");
-      }
+      response.message = "Room not found.";
+      console.log(`[validate-join-request] Failed: Room ${roomId} not found.`);
+    } else if (room.users.length >= 4) {
+      response.message = "Room is full.";
+      console.log(`[validate-join-request] Failed: Room ${roomId} is full.`);
     } else {
+      response.success = true;
+      response.message = "Room is valid to join.";
+      console.log(`[validate-join-request] Success: Room ${roomId} is valid.`);
+    }
+    socket.emit("join-validated", response); // Send validation result
+  });
+
+  // --- NEW: Handles the actual joining/creation after page load ---
+  socket.on("join-room-final", ({ roomId, instrument, isCreating }) => {
+    console.log(
+      `[join-room-final] Received for room ${roomId}, instrument ${instrument}, isCreating: ${isCreating}, from ${socket.id}`
+    );
+    let room;
+    const userId = socket.id; // Use the *current*, stable socket ID
+    const user = { id: userId, instrument: instrument };
+
+    if (isCreating) {
+      if (rooms.has(roomId)) {
+        // Should ideally not happen if IDs are unique, but handle defensively
+        console.error(
+          `[join-room-final] CRITICAL: Tried to create room ${roomId} which already exists!`
+        );
+        socket.emit("error", "Failed to create room: Room ID conflict.");
+        return;
+      }
+      // Create the room now
+      room = {
+        id: roomId,
+        users: [user],
+        host: userId,
+      };
+      rooms.set(roomId, room);
       console.log(
-        `Registration failed: Room ${roomId} not found for socket ${socket.id}`
+        `[join-room-final] CREATED room ${roomId} with host ${userId}`
       );
-      // Send the specific error the user reported seeing
-      socket.emit("error", "Error: Room not found during registration");
+    } else {
+      // Joining existing room
+      room = rooms.get(roomId);
+      if (!room) {
+        console.log(`[join-room-final] Join failed: Room ${roomId} not found.`);
+        socket.emit("error", "Room not found.");
+        return;
+      }
+      if (room.users.length >= 4) {
+        console.log(`[join-room-final] Join failed: Room ${roomId} is full.`);
+        socket.emit("error", "Room is full.");
+        return;
+      }
+      // Add user to the existing room
+      room.users.push(user);
+      console.log(
+        `[join-room-final] User ${userId} added to existing room ${roomId}`
+      );
+    }
+
+    // Join the Socket.IO room (crucial)
+    socket.join(roomId);
+    console.log(
+      `[join-room-final] Socket ${socket.id} joined Socket.IO room ${roomId}`
+    );
+
+    // Send the final room state back to the joining/creating user
+    socket.emit("room-state", { room: room, currentUserId: userId }); // Send userId too
+    console.log(
+      `[join-room-final] Emitted 'room-state' for ${roomId} to ${userId}`
+    );
+
+    // Notify others (only if joining, not creating the very first user)
+    if (!isCreating) {
+      socket.to(roomId).emit("user-joined", user);
+      console.log(
+        `[join-room-final] Broadcast 'user-joined' for ${userId} in room ${roomId}`
+      );
     }
   });
 
-  // Handle incoming audio events
+  // --- REMOVED 'register-socket' handler ---
+  // It's replaced by 'join-room-final'
+
+  // Handle incoming audio events (No changes needed)
   socket.on("audio-event", (event) => {
-    // Find which room the sending socket belongs to
     let userRoomId = null;
     rooms.forEach((room, roomId) => {
-      if (room.users.some((u) => u.id === socket.id)) {
-        userRoomId = roomId;
-      }
+      if (room.users.some((u) => u.id === socket.id)) userRoomId = roomId;
     });
-
     if (userRoomId) {
-      // Add sender's ID to the event so clients can identify who played
       event.senderId = socket.id;
-      // Broadcast the event to others in the same room
       socket.to(userRoomId).emit("audio-event", event);
     } else {
       console.log(`Could not find room for audio event from ${socket.id}`);
     }
   });
 
-  // Handle client disconnection
+  // Handle client disconnection (Uses current socket.id correctly now)
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
-    const userId = socket.id; // User ID is the socket ID in this setup
-
-    // Find which room the disconnected user was in
+    const userId = socket.id; // This IS the ID of the user who was in room.html
     rooms.forEach((room, roomId) => {
       const userIndex = room.users.findIndex((u) => u.id === userId);
-
       if (userIndex !== -1) {
-        // Remove user from the room's list
         const [user] = room.users.splice(userIndex, 1);
         console.log(`User ${userId} left room ${roomId}`);
-
-        // Notify remaining users in the room
         socket.to(roomId).emit("user-left", userId);
-
-        // Check if the room is now empty
         if (room.users.length === 0) {
           rooms.delete(roomId);
           console.log(`Room ${roomId} is empty, deleting.`);
         } else {
-          // Optional: Handle host leaving - assign a new host if needed
           if (room.host === userId) {
-            room.host = room.users[0].id; // Assign the next user as host
+            room.host = room.users[0].id;
             console.log(
               `Host ${userId} left room ${roomId}. New host is ${room.host}.`
             );
-            // Optionally notify clients about the new host
-            // io.to(roomId).emit('new-host', room.host);
+            io.to(roomId).emit("new-host", room.host); // Notify about new host
           }
         }
-        // Assuming a user can only be in one room, we can stop searching
-        return;
+        return; // User found and removed, stop iterating
       }
     });
   });
@@ -175,11 +172,20 @@ function generateRoomId() {
   let newId;
   do {
     newId = Math.random().toString(36).substring(2, 6).toUpperCase();
-  } while (rooms.has(newId)); // Ensure ID is truly unique
+  } while (rooms.has(newId));
   return newId;
 }
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// *** MODIFIED LINE HERE ***
+// Listen on 0.0.0.0 to accept connections from the network, not just localhost
+server.listen(PORT, "0.0.0.0", () => {
+  // You can optionally log the network address too, but finding it automatically
+  // can be complex, so usually, you just find it manually as described above.
+  console.log(
+    `Server running on port ${PORT} and accessible on the local network.`
+  );
+  console.log(
+    `Other devices on the network should connect to this machine's IP address.`
+  );
 });
